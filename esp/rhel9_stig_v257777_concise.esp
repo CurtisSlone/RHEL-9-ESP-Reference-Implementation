@@ -1,0 +1,138 @@
+META
+    version `1.0.0`
+    esp_version `1.0`
+    author `test-suite`
+    date `2025-10-02`
+    severity `high`
+    platform `linux`
+    description `Prevent kexec kernel loading`
+    control_framework `RHEL_9_STIG`
+    control `V-257777`
+    esp_scan_id `V-257777-STIG`
+    criticality `high`
+    tags `linux,users,security`
+META_END
+
+DEF
+
+# Variables
+VAR kexec_disabled string `systemd.kexec_load=0`
+VAR kexec_service string `kexec.service`
+VAR service_masked string `masked`
+
+# Runtime - Extract kernel version
+RUN kernel_version EXTRACT
+    source `/proc/cmdline`
+    pattern `([0-9]+)\.[0-9]+`
+    group 1
+RUN_END
+
+# Objects
+OBJECT grub_config
+    path `/etc/default`
+    filename `grub`
+    
+    select record
+        content text
+    select_end
+OBJECT_END
+
+OBJECT runtime_cmdline
+    path `/proc`
+    filename `cmdline`
+    
+    select record
+        content text
+    select_end
+OBJECT_END
+
+OBJECT kexec_svc
+    service_name VAR kexec_service
+    behavior query_state
+    
+    select record
+        masked_status masked
+    select_end
+OBJECT_END
+
+OBJECT modprobe_config
+    path `/etc/modprobe.d`
+    filename `*.conf`
+    
+    select record
+        content text
+    select_end
+OBJECT_END
+
+# States
+STATE grub_kexec_off
+    content string contains VAR kexec_disabled
+    content string contains `GRUB_CMDLINE_LINUX`
+STATE_END
+
+STATE runtime_kexec_off
+    content string contains VAR kexec_disabled
+    content string not_contains `kexec_load=1`
+STATE_END
+
+STATE service_masked
+    masked_status string = VAR service_masked
+STATE_END
+
+STATE module_blacklisted
+    content string contains `blacklist kexec`
+STATE_END
+
+# Set - All boot configs
+SET boot_configs intersection
+    OBJECT_REF grub_config
+    OBJECT_REF runtime_cmdline
+SET_END
+
+# Criteria - Multi-layer validation
+CRI AND
+    # GRUB configuration
+    CTN grub_check
+        TEST all all
+        STATE_REF grub_kexec_off
+        OBJECT_REF grub_config
+    CTN_END
+    
+    # Runtime check
+    CTN runtime_check
+        TEST all all
+        STATE_REF runtime_kexec_off
+        OBJECT_REF runtime_cmdline
+    CTN_END
+    
+    # Service disabled
+    CTN service_check
+        TEST all all
+        STATE_REF service_masked
+        OBJECT_REF kexec_svc
+    CTN_END
+    
+    # Module blacklist
+    CRI OR
+        CTN module_check
+            TEST any all
+            STATE_REF module_blacklisted
+            OBJECT_REF modprobe_config
+        CTN_END
+        
+        # Alternative: verify no kexec in any config
+        CRI NOT
+            CTN kexec_enabled
+                TEST any all
+                STATE kexec_present
+                    content string contains `kexec_load=1`
+                STATE_END
+                OBJECT boot_check
+                    SET_REF boot_configs
+                OBJECT_END
+            CTN_END
+        CRI_END
+    CRI_END
+CRI_END
+
+DEF_END
