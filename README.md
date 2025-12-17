@@ -111,11 +111,16 @@ Example:
 
 ## Output
 
-The scanner executes the policy and evaluates system state according to the ESP definition. Results are emitted directly to stdout in a structured, deterministic format suitable for:
+The scanner outputs results as JSON:
 
-- local validation
-- CI experimentation
-- downstream result processing
+results.json — when running a single policy
+batch-results.json — when running multiple policies
+
+Results are structured and deterministic, suitable for:
+
+local validation
+CI experimentation
+downstream result processing
 
 (Reporting and orchestration are intentionally out of scope for this repo.)
 
