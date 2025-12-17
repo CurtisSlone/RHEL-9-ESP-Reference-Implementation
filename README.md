@@ -51,11 +51,11 @@ This repository proves that model works on a real RHEL 9 system.
 .
 ├── esp/                # ESP policies
 │   └── *.esp
-├── src/
-│   ├── main.rs         # Scanner entry point
-│   └── ...             # Minimal execution logic
-├── Dockerfile          # Devcontainer environment
+├── scanner             # Devcontainer environment
+├── scanner             # Example files to reference in Endpoint State Policies
 ├── .devcontainer/      # VS Code devcontainer config
+│   └── Dockerfile
+│   └── devcontainer.json
 └── README.md
 ```
 
