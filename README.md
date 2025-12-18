@@ -114,6 +114,7 @@ Example:
 The scanner outputs results as JSON:
 
 results.json — when running a single policy
+
 batch-results.json — when running multiple policies
 
 Results are structured and deterministic, suitable for:
